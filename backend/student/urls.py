@@ -4,5 +4,5 @@ from .views import StudentList, StudentProfileDetail
 
 urlpatterns = [
     path('api/students/', StudentList.as_view(), name='user-list'),
-    path('profiles/<int:pk>/', StudentProfileDetail.as_view(), name='student-profile-detail'),
+    path('student/detail/<int:pk>/', StudentProfileDetail.as_view(), name='student-profile-detail'),
 ]
