@@ -1,42 +1,110 @@
-import base64
-
-from .models import Student, StudentDetail, Skill
 from rest_framework import serializers
+from .models import Skill, SkillCategory, Specialty, Education, WorkExperience, Portfolio, Student
+
+
+class SkillCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SkillCategory
+        fields = ["id", "name"]
+
 
 class SkillSerializer(serializers.ModelSerializer):
+    category = SkillCategorySerializer(read_only=True)
+
     class Meta:
         model = Skill
-        fields = ['name_skill']
+        fields = ["id", "name", "category"]
 
-class StudentSerializer(serializers.ModelSerializer):
-    top_skills = serializers.SerializerMethodField()
-    photo_url = serializers.ImageField(use_url=True, required=False)
+
+class SpecialtySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Specialty
+        fields = ["id", "name"]
+
+
+class EducationSerializer(serializers.ModelSerializer):
+    specialty = SpecialtySerializer(read_only=True)
 
     class Meta:
-        model = Student
-        fields = ['id', 'full_name', 'role', 'top_skills', 'short_description', 'photo_url', 'profile_url']
+        model = Education
+        fields = ["id", "institution", "specialty", "start_year", "end_year", "additional_info"]
 
-    def get_top_skills(self, obj):
-        # Извлекаем только названия навыков
-        return [skill.name_skill for skill in obj.top_skills.all()]
+
+class WorkExperienceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WorkExperience
+        fields = ["id", "position", "company", "start_date", "end_date", "description"]
+
+
+class PortfolioSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Portfolio
+        fields = ["id", "title", "link", "description"]
 
 
 class StudentProfileSerializer(serializers.ModelSerializer):
-    student_full_name = serializers.CharField(source='student.full_name', read_only=True)
-    student_role = serializers.CharField(source='student.role', read_only=True)
-    student_photo_url = serializers.ImageField(source='student.photo_url', read_only=True)
-    student_profile_url = serializers.URLField(source='student.profile_url', read_only=True)
-    student_top_skills = serializers.SerializerMethodField()
     skills = serializers.SerializerMethodField()
+    specialty = serializers.SerializerMethodField()
+    educations = EducationSerializer(many=True, read_only=True)
+    work_experiences = WorkExperienceSerializer(many=True, read_only=True)
+    portfolios = PortfolioSerializer(many=True, read_only=True)
+    email = serializers.ReadOnlyField(source='user.email')
 
     class Meta:
-        model = StudentDetail
-        fields = ['id', 'student_full_name', 'student_role', 'student_photo_url', 'student_profile_url', 'student_top_skills', 'skills', 'description']
+        model = Student
+        fields = [
+            "id",
+            "full_name",
+            "avatar_url",
+            "birth_date",
+            "phone_number",
+            "email",
+            "course",
+            "bio",
+            "city",
+            "hh_link",
+            "is_active",
+            "skills",
+            "specialty",
+            "educations",
+            "work_experiences",
+            "portfolios",
+        ]
 
-    def get_student_top_skills(self, obj):
-        # Возвращаем только список названий top_skills
-        return [skill.name_skill for skill in obj.student.top_skills.all()]
+    def get_skills(self, obj: Student):
+        return [skill.name for skill in obj.skills.all()]
 
-    def get_skills(self, obj):
-        # Возвращаем только список названий skills
-        return [skill.name_skill for skill in obj.skills.all()]
+    def get_specialty(self, obj: Student):
+        return obj.specialty.name if obj.specialty else None
+
+
+class StudentCardSerializer(serializers.ModelSerializer):
+    specialty = serializers.SerializerMethodField()
+    skills = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Student
+        fields = [
+            "id",
+            "full_name",
+            "avatar_url",
+            "course",
+            "specialty",
+            "skills",
+            "description",
+        ]
+
+    def get_skills(self, obj: Student):
+        top_five = obj.skills.all()[:5]
+        return [skill.name for skill in top_five]
+
+    def get_specialty(self, obj: Student):
+        return obj.specialty.name if obj.specialty else None
+
+    def get_description(self, obj: Student):
+        if not obj.bio:
+            return ""
+        text = obj.bio.strip()
+        return text if len(text) <= 100 else text[:100].rstrip() + '…'
+

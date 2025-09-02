@@ -1,10 +1,13 @@
-from django.conf.urls.static import static
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import StudentProfileViewSet
+from .api_views import filter_options, student_stats
 
-from .views import StudentList, StudentProfileDetail
-from django.conf import settings
+router = DefaultRouter()
+router.register(r'profiles', StudentProfileViewSet, basename='profiles')
 
 urlpatterns = [
-    path('api/students/', StudentList.as_view(), name='user-list'),
-    path('api/student/<int:pk>/', StudentProfileDetail.as_view(), name='student-profile-detail'),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    path('', include(router.urls)),
+    path('filter-options/', filter_options, name='filter-options'),
+    path('stats/', student_stats, name='student-stats'),
+]
