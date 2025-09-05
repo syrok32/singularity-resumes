@@ -1,0 +1,4 @@
+GET http://127.0.0.1:8000/api/v1/profiles/?skills_name=JavaScript&skills_name=React
+GET http://127.0.0.1:8000/api/v1/profiles/?skills_name=JavaScript&skills_name=React
+GET http://127.0.0.1:8000/api/v1/profiles/?search=Data
+GET http://127.0.0.1:8000/api/v1/profiles/?city=Москва

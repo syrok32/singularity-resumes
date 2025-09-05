@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom"
+
 const StudentCard = ({ student }) => {
   const getAvatarUrl = (avatarUrl) => {
     if (!avatarUrl) return "/professional-student-portrait.png"
@@ -73,9 +75,12 @@ const StudentCard = ({ student }) => {
           </p>
 
           {/* Action Button */}
-          <button className="px-6 py-2 bg-slate-700/50 hover:bg-slate-700 text-slate-200 text-sm rounded-lg border border-slate-600/30 hover:border-slate-500 transition-all duration-200 font-medium">
+          <Link
+            to={`/student/${student.id}`}
+            className="inline-block px-6 py-2 bg-slate-700/50 hover:bg-slate-700 text-slate-200 text-sm rounded-lg border border-slate-600/30 hover:border-slate-500 transition-all duration-200 font-medium"
+          >
             Смотреть резюме
-          </button>
+          </Link>
         </div>
       </div>
     </div>
