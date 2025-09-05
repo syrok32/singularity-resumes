@@ -13,7 +13,8 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-
+TELEGRAM_BOT_TOKEN = '8269224152:AAGvQEPWv_JhiqekAY5kLtyPtWrLkCqLU58'  # Замени на реальный токен от @BotFather
+DOMAIN = 'localhost:8000'  # Для локального теста, позже замени на реальный домен
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -41,6 +42,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "users",
     "student",
+    "telegram_bot",
     "rest_framework",
     'corsheaders',
     'django_filters'

@@ -30,8 +30,9 @@ class Skill(models.Model):
 
 
 class Specialty(models.Model):
-    
+
     name = models.CharField(max_length=100, verbose_name='Специальность')
+    skills = models.ManyToManyField('Skill', blank=True, related_name='specialties', verbose_name='Навыки специальности')
 
     def __str__(self):
         return self.name
@@ -106,6 +107,10 @@ class Student(models.Model):
     skills = models.ManyToManyField(Skill, blank=True, verbose_name='Навыки')
     specialty = models.ForeignKey(Specialty, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Специальность')
 
+    # Telegram related fields (optional denormalization for easy joins)
+    telegram_user_id = models.BigIntegerField(null=True, blank=True, db_index=True, verbose_name='TG user id')
+    telegram_chat_id = models.BigIntegerField(null=True, blank=True, verbose_name='TG chat id')
+
     def __str__(self):
 
         return self.full_name or str(self.user)
@@ -123,3 +128,37 @@ class Student(models.Model):
         if self.avatar and hasattr(self.avatar, 'url'):
             return self.avatar.url
         return None
+
+
+class InternshipApplication(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'В ожидании'),
+        ('accepted', 'Принята'),
+        ('rejected', 'Отклонена'),
+    ]
+
+    student = models.ForeignKey('Student', on_delete=models.CASCADE, related_name='applications', verbose_name='Студент')
+    employer_name = models.CharField(max_length=255, verbose_name='Работодатель')
+    message = models.TextField(verbose_name='Сообщение')
+    # контакт email
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name='Статус')
+    student_response = models.CharField(max_length=20, choices=[('accepted','Принято'),('rejected','Отклонено'),('pending','Ожидает')], default='pending', verbose_name='Ответ студента')
+    moderator_response = models.CharField(max_length=20, choices=[('accepted','Принято'),('rejected','Отклонено'),('pending','Ожидает')], default='pending', verbose_name='Ответ куратора')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def recompute_status(self):
+        if self.student_response == 'accepted' and self.moderator_response == 'accepted':
+            self.status = 'accepted'
+        elif self.student_response == 'rejected' or self.moderator_response == 'rejected':
+            self.status = 'rejected'
+        else:
+            self.status = 'pending'
+
+    def save(self, *args, **kwargs):
+        self.recompute_status()
+        super().save(*args, **kwargs)
+
+    class Meta:
+        verbose_name = 'Заявка на стажировку'
+        verbose_name_plural = 'Заявки на стажировку'

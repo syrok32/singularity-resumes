@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Student, SkillCategory, Skill, Specialty, Education, WorkExperience, Portfolio
+from .models import Student, SkillCategory, Skill, Specialty, Education, WorkExperience, Portfolio, InternshipApplication
 
 
 class EducationInline(admin.TabularInline):
@@ -43,6 +43,7 @@ class SkillCategoryAdmin(admin.ModelAdmin):
 class SpecialtyAdmin(admin.ModelAdmin):
     list_display = ("name",)
     search_fields = ("name",)
+    filter_horizontal = ("skills",)
 
 
 @admin.register(Education)
@@ -62,3 +63,10 @@ class PortfolioAdmin(admin.ModelAdmin):
     list_display = ("student", "title", "link")
     search_fields = ("title", "student__user__username")
 
+
+@admin.register(InternshipApplication)
+class InternshipApplicationAdmin(admin.ModelAdmin):
+    list_display = ("id", "student", "employer_name", "status", "student_response", "moderator_response", "created_at")
+    list_filter = ("status", "student_response", "moderator_response")
+    search_fields = ("student__user__email", "student__full_name", "employer_name", "message")
+    readonly_fields = ("created_at", "updated_at")

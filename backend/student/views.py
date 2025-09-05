@@ -5,14 +5,14 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import models
-
+# from ..singularityResumes import settings
 from .models import Student, Specialty, Skill
 from .serializers import StudentProfileSerializer, StudentCardSerializer
 from .filters import StudentFilter
 
 
 class StudentPagination(PageNumberPagination):
-    page_size = 5
+    page_size = 10
     page_size_query_param = 'page_size'
     max_page_size = 100
 
@@ -98,3 +98,16 @@ class StudentProfileViewSet(viewsets.ReadOnlyModelViewSet):
             'specialty_stats': specialty_stats,
             'top_skills': top_skills_data
         })
+
+# from django.http import HttpResponse
+# from django.views.decorators.csrf import csrf_exempt
+# from telegram import Update
+# from ..telegram_bot.bots import application
+#
+# @csrf_exempt
+# def telegram_webhook(request, token):
+#     if token == settings.TELEGRAM_BOT_TOKEN and request.method == 'POST':
+#         update = Update.de_json(request.body.decode('utf-8'), application.bot)
+#         application.process_update(update)
+#         return HttpResponse(status=200)
+#     return HttpResponse("Unauthorized", status=403)
