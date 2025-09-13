@@ -30,8 +30,10 @@ class Student(models.Model):
 
 
 class StudentDetail(models.Model):
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, verbose_name='Ссылка на студента')
-    skills = models.ManyToManyField(Skill, verbose_name='Технические навыки и стек', blank=True)
+    student = models.ForeignKey(
+        Student, on_delete=models.CASCADE, verbose_name='Ссылка на студента')
+    skills = models.ManyToManyField(
+        Skill, verbose_name='Технические навыки и стек', blank=True)
     description = models.TextField(verbose_name='Общее описание', blank=True)
 
     # about = models.TextField(verbose_name='"Обо мне"', blank=True)
