@@ -1,0 +1,91 @@
+[
+  {
+    "model": "student.skillcategory",
+    "pk": 1,
+    "fields": {
+      "name": "Программирование"
+    }
+  },
+  {
+    "model": "student.skillcategory",
+    "pk": 2,
+    "fields": {
+      "name": "Фронтенд"
+    }
+  },
+  {
+    "model": "student.skillcategory",
+    "pk": 3,
+    "fields": {
+      "name": "Бэкенд"
+    }
+  },
+  {
+    "model": "student.skillcategory",
+    "pk": 4,
+    "fields": {
+      "name": "Базы данных"
+    }
+  },
+  {
+    "model": "student.skill",
+    "pk": 1,
+    "fields": {
+      "name": "Python",
+      "category": 1
+    }
+  },
+  {
+    "model": "student.skill",
+    "pk": 2,
+    "fields": {
+      "name": "JavaScript",
+      "category": 1
+    }
+  },
+  {
+    "model": "student.skill",
+    "pk": 3,
+    "fields": {
+      "name": "React",
+      "category": 2
+    }
+  },
+  {
+    "model": "student.skill",
+    "pk": 4,
+    "fields": {
+      "name": "Django",
+      "category": 3
+    }
+  },
+  {
+    "model": "student.skill",
+    "pk": 5,
+    "fields": {
+      "name": "PostgreSQL",
+      "category": 4
+    }
+  },
+  {
+    "model": "student.specialty",
+    "pk": 1,
+    "fields": {
+      "name": "Веб-разработка"
+    }
+  },
+  {
+    "model": "student.specialty",
+    "pk": 2,
+    "fields": {
+      "name": "Мобильная разработка"
+    }
+  },
+  {
+    "model": "student.specialty",
+    "pk": 3,
+    "fields": {
+      "name": "Data Science"
+    }
+  }
+]
