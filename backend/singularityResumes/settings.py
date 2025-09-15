@@ -45,7 +45,8 @@ INSTALLED_APPS = [
     "telegram_bot",
     "rest_framework",
     'corsheaders',
-    'django_filters'
+    'django_filters',
+    'drf_yasg'
 ]
 
 MIDDLEWARE = [
