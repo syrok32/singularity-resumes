@@ -13,8 +13,30 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-TELEGRAM_BOT_TOKEN = '8269224152:AAGvQEPWv_JhiqekAY5kLtyPtWrLkCqLU58'  # Замени на реальный токен от @BotFather
-DOMAIN = 'localhost:8000'  # Для локального теста, позже замени на реальный домен
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.mail.ru'
+EMAIL_PORT = 2525
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+EMAIL_HOST_USER = 'prostokakdella@vk.com'
+EMAIL_HOST_PASSWORD = 'sxn31GpCxgDLz1RYuidD'
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
+
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TIMEZONE = 'Europe/Moscow'
+
+# настройки телеграма
+TELEGRAM_BOT_TOKEN = '8269224152:AAGvQEPWv_JhiqekAY5kLtyPtWrLkCqLU58'
+TELEGRAM_BOT_USERNAME = 'ttessterrer_bot'
+DOMAIN = 'localhost:8000'
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -142,19 +164,25 @@ REST_FRAMEWORK = {
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'django_redis.cache.RedisCache',
+#         'LOCATION': 'redis://127.0.0.1:6379/1',
+#         'OPTIONS': {
+#             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+#         }
+#     }
+# }
 CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379/1',
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        }
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "unique-snowflake", # Произвольная строка для изоляции кэша
     }
 }
-
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # Your React app's origin
     "http://127.0.0.1:3000",
 ]
 CORS_ALLOW_ALL_ORIGINS = True
+

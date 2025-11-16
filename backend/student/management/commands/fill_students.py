@@ -7,18 +7,18 @@ import random
 User = get_user_model()
 
 class Command(BaseCommand):
-    help = 'Fill database with 6 students'
+    help = "Заполняет базу тестовыми студентами, навыками, образованием, опытом и портфолио"
 
     def handle(self, *args, **options):
-        self.stdout.write('Создание 6 студентов...')
-        
+        self.stdout.write("Начинаю создание тестовых данных студентов...")
+
         # Создаем категории навыков
         prog_cat, _ = SkillCategory.objects.get_or_create(name='Программирование')
         frontend_cat, _ = SkillCategory.objects.get_or_create(name='Фронтенд')
         backend_cat, _ = SkillCategory.objects.get_or_create(name='Бэкенд')
         db_cat, _ = SkillCategory.objects.get_or_create(name='Базы данных')
         mobile_cat, _ = SkillCategory.objects.get_or_create(name='Мобильная разработка')
-        
+
         # Создаем навыки
         skills_data = [
             ('Python', prog_cat),
@@ -36,15 +36,11 @@ class Command(BaseCommand):
             ('React Native', mobile_cat),
             ('Flutter', mobile_cat),
         ]
-        
         skills = {}
         for skill_name, category in skills_data:
-            skill, created = Skill.objects.get_or_create(
-                name=skill_name,
-                defaults={'category': category}
-            )
+            skill, created = Skill.objects.get_or_create(name=skill_name, defaults={'category': category})
             skills[skill_name] = skill
-        
+
         # Создаем специальности
         specialties_data = [
             'Веб-разработка',
@@ -54,12 +50,11 @@ class Command(BaseCommand):
             'Программная инженерия',
             'UI/UX Дизайн'
         ]
-        
         specialties = {}
         for spec_name in specialties_data:
             specialty, created = Specialty.objects.get_or_create(name=spec_name)
             specialties[spec_name] = specialty
-        
+
         # Данные студентов
         students_data = [
             {
@@ -84,7 +79,7 @@ class Command(BaseCommand):
                 'username': 'maria_sidorova',
                 'full_name': 'Сидорова Мария Викторовна',
                 'course': '4',
-                'bio': 'Студент��а 4 курса, специализируюсь на мобильной разработке.',
+                'bio': 'Студентка 4 курса, специализируюсь на мобильной разработке.',
                 'city': 'Санкт-Петербург',
                 'phone_number': '89992345678',
                 'birth_date': date(2000, 8, 22),
@@ -161,73 +156,64 @@ class Command(BaseCommand):
                 'institution': 'ЮФУ',
                 'position': 'UI/UX Designer',
                 'company': 'Ozon',
-                'project_title': 'Дизайн-с��стема',
+                'project_title': 'Дизайн-система',
                 'project_link': 'https://github.com/anna/design-system'
-            }
+            },
         ]
-        
-        # Создаем студентов
-        for student_data in students_data:
-            # Создаем пользователя
+
+        for data in students_data:
             user, created = User.objects.get_or_create(
-                email=student_data['email'],
-                defaults={'username': student_data['username']}
+                email=data['email'],
+                defaults={'username': data['username']}
             )
-            
             if created:
                 user.set_password('password123')
                 user.save()
                 self.stdout.write(f'Создан пользователь: {user.email}')
-            
-            # Создаем студента
+
             student, created = Student.objects.get_or_create(
                 user=user,
                 defaults={
-                    'full_name': student_data['full_name'],
-                    'course': student_data['course'],
-                    'bio': student_data['bio'],
-                    'city': student_data['city'],
-                    'phone_number': student_data['phone_number'],
-                    'birth_date': student_data['birth_date'],
-                    'specialty': specialties[student_data['specialty']],
+                    'full_name': data['full_name'],
+                    'course': data['course'],
+                    'bio': data['bio'],
+                    'city': data['city'],
+                    'phone_number': data['phone_number'],
+                    'birth_date': data['birth_date'],
+                    'specialty': specialties[data['specialty']],
                     'hh_link': f'https://hh.ru/resume/{random.randint(100000, 999999)}'
                 }
             )
-            
             if created:
-                # Добавляем навыки
-                for skill_name in student_data['skills']:
-                    if skill_name in skills:
-                        student.skills.add(skills[skill_name])
-                
+                for skill_name in data['skills']:
+                    skill = skills.get(skill_name)
+                    if skill:
+                        student.skills.add(skill)
                 self.stdout.write(f'Создан студент: {student.full_name}')
-                
-                # Создаем образование
+
                 Education.objects.create(
                     student=student,
-                    institution=student_data['institution'],
+                    institution=data['institution'],
                     specialty=student.specialty,
                     start_year=2020,
                     end_year=2024,
                     additional_info='Факультет информационных технологий'
                 )
-                
-                # Создаем опыт работы
+
                 WorkExperience.objects.create(
                     student=student,
-                    position=student_data['position'],
-                    company=student_data['company'],
+                    position=data['position'],
+                    company=data['company'],
                     start_date=date(2023, 1, 15),
                     end_date=date(2023, 12, 31),
                     description='Разработка и поддержка проектов, участие в команде разработки.'
                 )
-                
-                # Создаем портфолио
+
                 Portfolio.objects.create(
                     student=student,
-                    title=student_data['project_title'],
-                    link=student_data['project_link'],
+                    title=data['project_title'],
+                    link=data['project_link'],
                     description=f'Проект по специальности {student.specialty.name}'
                 )
-        
-        self.stdout.write(self.style.SUCCESS('Все 6 студентов созданы!'))
+
+        self.stdout.write(self.style.SUCCESS('Все тестовые студенты успешно созданы!'))

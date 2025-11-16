@@ -1,113 +1,190 @@
+"""
+Представления (ViewSets) для приложения student.
+Оптимизированы для производительности и кеширования.
+"""
+
 from rest_framework import viewsets, filters, status
-from rest_framework.pagination import PageNumberPagination
-from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db import models
-# from ..singularityResumes import settings
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_headers
+from django.core.cache import cache
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+
 from .models import Student, Specialty, Skill
-from .serializers import StudentProfileSerializer, StudentCardSerializer
+from .serializers import (
+    StudentProfileSerializer,
+    StudentCardSerializer,
+    StudentListSerializer,
+    FilterOptionsSerializer,
+    StudentStatsSerializer
+)
 from .filters import StudentFilter
 
 
 class StudentPagination(PageNumberPagination):
-    page_size = 10
+    """
+    Кастомная пагинация для студентов.
+    Позволяет фронтенду управлять размером страницы.
+    """
+    page_size = 12
     page_size_query_param = 'page_size'
     max_page_size = 100
 
+    def get_paginated_response(self, data):
+        """Расширенный ответ с метаинформацией."""
+        return Response({
+            'count': self.page.paginator.count,
+            'next': self.get_next_link(),
+            'previous': self.get_previous_link(),
+            'total_pages': self.page.paginator.num_pages,
+            'current_page': self.page.number,
+            'page_size': self.page_size,
+            'results': data
+        })
+
 
 class StudentProfileViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Student.objects.select_related('specialty', 'user').prefetch_related(
-        'skills__category', 'educations__specialty', 'work_experiences', 'portfolios'
-    ).filter(is_active=True)
-    serializer_class = StudentProfileSerializer
+    """
+    ViewSet для профилей студентов.
+
+    Поддерживает:
+    - Листинг студентов с фильтрацией, поиском и сортировкой
+    - Детальный просмотр профиля студента
+    - Получение топ-студентов для главной страницы
+    - Фильтры и статистику
+
+    Endpoints:
+    - GET /api/students/profiles/ - список студентов
+    - GET /api/students/profiles/{id}/ - детальный профиль
+    - GET /api/students/profiles/top/ - топ студенты для главной
+    - GET /api/students/profiles/filter_options/ - опции фильтров
+    - GET /api/students/profiles/stats/ - статистика
+    """
+
     permission_classes = [AllowAny]
     pagination_class = StudentPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = StudentFilter
-    search_fields = ['full_name', 'city', 'bio', 'skills__name', 'specialty__name']
-    ordering_fields = ['full_name', 'course', 'city']
-    ordering = ['full_name']
+
+    # Поля для полнотекстового поиска
+    search_fields = [
+        'full_name',
+        'bio',
+        'city',
+        'skills__name',
+        'specialty__name'
+    ]
+
+    # Поля для сортировки
+    ordering_fields = [
+        'full_name',
+        'course',
+        'city',
+        'created_at'
+    ]
+    ordering = ['-created_at']  # По умолчанию сортировка по дате создания
+
+    def get_queryset(self):
+        """
+        Оптимизированный queryset с предзагрузкой связанных объектов.
+        Предотвращает проблему N+1.
+        """
+        queryset = Student.objects.active()
+
+        # Для списка используем оптимизацию карточек
+        if self.action == 'list':
+            return queryset.with_card_data()
+
+        # Для детального просмотра загружаем полный профиль
+        elif self.action == 'retrieve':
+            return queryset.with_full_profile()
+
+        # Для остальных действий базовая оптимизация
+        return queryset.select_related('specialty', 'user')
 
     def get_serializer_class(self):
+        """Выбор сериализатора в зависимости от действия."""
         if self.action == 'list':
             return StudentCardSerializer
+        elif self.action == 'top':
+            return StudentListSerializer
         return StudentProfileSerializer
 
+    @swagger_auto_schema(
+        operation_description="Получить список топ-студентов для главной страницы",
+        manual_parameters=[
+            openapi.Parameter(
+                'limit',
+                openapi.IN_QUERY,
+                description="Количество студентов (по умолчанию 10)",
+                type=openapi.TYPE_INTEGER
+            )
+        ],
+        responses={200: StudentListSerializer(many=True)}
+    )
     @action(detail=False, methods=['get'])
-    def filter_options(self, request):
-        """Возвращает доступные опции для фильтров"""
-        # Получаем все специальности
-        specialties = Specialty.objects.all().values('id', 'name')
+    @method_decorator(cache_page(60 * 15))  # Кеш на 15 минут
+    def top(self, request):
+        """
+        Возвращает топ-студентов для отображения на главной странице.
 
-        # Получаем все навыки
-        skills = Skill.objects.select_related('category').all().values(
-            'id', 'name', 'category__name'
+        Логика выбора:
+        - Активные студенты
+        - С заполненным профилем (био, навыки, специальность)
+        - Сортировка по дате создания (новые)
+        - Лимит по умолчанию: 10
+        """
+        limit = int(request.query_params.get('limit', 10))
+        limit = min(limit, 50)  # Максимум 50
+
+        # Получаем студентов с полным профилем
+        students = (
+            Student.objects.active()
+            .with_card_data()
+            .exclude(bio='')
+            .exclude(specialty__isnull=True)
+            .filter(skills__isnull=False)
+            .distinct()
+            .order_by('-created_at')[:limit]
         )
 
-        # Получаем все курсы
-        courses = Student.objects.values_list('course', flat=True).distinct().order_by('course')
-
-        # Получаем все города
-        cities = Student.objects.values_list('city', flat=True).distinct().order_by('city')
-        cities = [city for city in cities if city]  # Убираем пустые значения
-
+        serializer = self.get_serializer(students, many=True)
         return Response({
-            'specialties': list(specialties),
-            'skills': list(skills),
-            'courses': list(courses),
-            'cities': cities
+            'count': len(serializer.data),
+            'students': serializer.data
         })
 
+    @swagger_auto_schema(
+        operation_description="Получить опции для фильтров (специальности, навыки, города, курсы)",
+        responses={200: openapi.Response(
+            description="Опции фильтров",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'specialties': openapi.Schema(type=openapi.TYPE_ARRAY,
+                                                  items=openapi.Schema(type=openapi.TYPE_OBJECT)),
+                    'skills': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_OBJECT)),
+                    'skills_by_category': openapi.Schema(type=openapi.TYPE_OBJECT),
+                    'courses': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_OBJECT)),
+                    'cities': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_STRING)),
+                }
+            )
+        )}
+    )
     @action(detail=False, methods=['get'])
-    def stats(self, request):
-        """Возвращает статистику студентов"""
-        total_students = self.get_queryset().count()
+    @method_decorator(cache_page(60 * 30))  # Кеш на 30 минут
+    def filter_options(self, request):
+        """
+        Возвращает все доступные опции для фильтров.
+        Кешируется на 30 минут.
+        """
+        from .api_views import get_filter_options_data
+        data = get_filter_options_data()
+        return Response(data)
 
-        # Статистика по курсам
-        course_stats = {}
-        for course in range(1, 5):
-            count = self.get_queryset().filter(course=str(course)).count()
-            course_stats[f'course_{course}'] = count
-
-        # Статистика по специальностям
-        specialty_stats = []
-        for specialty in Specialty.objects.all():
-            count = self.get_queryset().filter(specialty=specialty).count()
-            if count > 0:
-                specialty_stats.append({
-                    'name': specialty.name,
-                    'count': count
-                })
-
-        # Топ навыков
-        from django.db.models import Count
-        top_skills = Skill.objects.annotate(
-            student_count=Count('student', filter=models.Q(student__is_active=True))
-        ).filter(student_count__gt=0).order_by('-student_count')[:10]
-
-        top_skills_data = [
-            {'name': skill.name, 'count': skill.student_count}
-            for skill in top_skills
-        ]
-
-        return Response({
-            'total_students': total_students,
-            'course_stats': course_stats,
-            'specialty_stats': specialty_stats,
-            'top_skills': top_skills_data
-        })
-
-# from django.http import HttpResponse
-# from django.views.decorators.csrf import csrf_exempt
-# from telegram import Update
-# from ..telegram_bot.bots import application
-#
-# @csrf_exempt
-# def telegram_webhook(request, token):
-#     if token == settings.TELEGRAM_BOT_TOKEN and request.method == 'POST':
-#         update = Update.de_json(request.body.decode('utf-8'), application.bot)
-#         application.process_update(update)
-#         return HttpResponse(status=200)
-#     return HttpResponse("Unauthorized", status=403)

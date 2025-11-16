@@ -8,14 +8,14 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState("")
 
   return (
-    <header className="border-b border-slate-800/50 bg-slate-900/80 backdrop-blur-sm sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6 py-4">
+    <header className="border-b border-slate-800/50 bg-slate-950/80 backdrop-blur-sm sticky top-0 z-12">
+      <div className="max-w-7xl mx-auto px-0 py-4">
         <div className="flex items-center justify-between">
           <nav className="flex items-center space-x-8">
             <Link
               to="/"
               className={`transition-colors font-medium ${
-                location.pathname === "/" ? "text-white" : "text-slate-300 hover:text-white"
+                location.pathname === "/" ? "text-white" : "text-slate-7000 hover:text-white"
               }`}
             >
               ГЛАВНАЯ
